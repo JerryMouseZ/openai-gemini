@@ -1,4 +1,25 @@
 import { Buffer } from "node:buffer";
+import fs from "fs";
+import path from "path";
+
+// 读取.env文件中的API_KEYS
+function loadApiKeysFromEnvFile() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return [];
+  const envContent = fs.readFileSync(envPath, "utf-8");
+  const match = envContent.match(/^API_KEYS\s*=\s*(.*)$/m);
+  if (!match) return [];
+  return match[1].split(",").map(k => k.trim()).filter(Boolean);
+}
+
+const API_KEYS = loadApiKeysFromEnvFile();
+let apiKeyIndex = 0;
+function getNextApiKey() {
+  if (!API_KEYS.length) return undefined;
+  const key = API_KEYS[apiKeyIndex];
+  apiKeyIndex = (apiKeyIndex + 1) % API_KEYS.length;
+  return key;
+}
 
 export default {
   async fetch (request) {
@@ -11,7 +32,10 @@ export default {
     };
     try {
       const auth = request.headers.get("Authorization");
-      const apiKey = auth?.split(" ")[1];
+      // let apiKey = auth?.split(" ")[1];
+      // if (!apiKey) {
+      let apiKey = getNextApiKey();
+      // }
       const assert = (success) => {
         if (!success) {
           throw new HttpError("The specified HTTP method is not allowed for the requested resource", 400);
