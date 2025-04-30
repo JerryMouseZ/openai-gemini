@@ -1,12 +1,12 @@
-### 配置 API Key（.env 文件）
+### Configure API Key (.env file)
 
-在项目根目录下创建一个名为 `.env` 的文件，并添加如下内容：
+Create a file named `.env` in the project root directory and add the following content:
 
 ```
 API_KEYS=your_key1,your_key2
 ```
 
-你可以填写一个或多个 Gemini API Key，用英文逗号分隔。服务启动后会自动从该文件读取 key。
+You can enter one or more Gemini API Keys, separated by commas. The service will automatically read the keys from this file upon startup.
 
 ### Serve locally - with Node, Deno, Bun
 

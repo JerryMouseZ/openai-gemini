@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import fs from "fs";
 import path from "path";
 
-// 读取.env文件中的API_KEYS
+// Read API_KEYS from the .env file
 function loadApiKeysFromEnvFile() {
   const envPath = path.resolve(process.cwd(), ".env");
   if (!fs.existsSync(envPath)) return [];
