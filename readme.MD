@@ -21,6 +21,66 @@ Only for Node: `npm install --include=dev`
 
 Then: `npm run dev` / `npm run dev:deno` / `npm run dev:bun`.
 
+### Deploy with Docker
+
+#### Using Docker Compose (推荐)
+
+1. 复制环境文件模板：
+```bash
+cp .env.example .env
+```
+
+2. 编辑 `.env` 文件，添加您的Gemini API密钥：
+```
+API_KEYS=your_gemini_api_key_1,your_gemini_api_key_2
+```
+
+3. 启动服务：
+```bash
+docker-compose up -d
+```
+
+4. 检查服务状态：
+```bash
+docker-compose logs -f
+```
+
+5. 停止服务：
+```bash
+docker-compose down
+```
+
+#### 使用单独的Docker命令
+
+1. 构建镜像：
+```bash
+docker build -t openai-gemini .
+```
+
+2. 运行容器：
+```bash
+docker run -d \
+  --name openai-gemini \
+  -p 8080:8080 \
+  --env-file .env \
+  openai-gemini
+```
+
+或者直接传递环境变量：
+```bash
+docker run -d \
+  --name openai-gemini \
+  -p 8080:8080 \
+  -e API_KEYS=your_key1,your_key2 \
+  openai-gemini
+```
+
+#### 健康检查
+
+Docker Compose配置包含健康检查。您也可以手动检查服务状态：
+```bash
+curl http://localhost:8080/v1/models
+```
 
 ## How to use
 If you open your newly-deployed site in a browser, you will only see a `404 Not Found` message. This is expected, as the API is not designed for direct browser access.
