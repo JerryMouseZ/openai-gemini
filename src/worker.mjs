@@ -14,11 +14,66 @@ function loadApiKeysFromEnvFile() {
 
 const API_KEYS = loadApiKeysFromEnvFile();
 let apiKeyIndex = 0;
+
+// Rate limiting: 5 requests per minute per API key
+const RATE_LIMIT_PER_MINUTE = 5;
+const rateLimitMap = new Map();
+
+function cleanupExpiredRateLimits() {
+  const now = Date.now();
+  const oneMinuteAgo = now - 60 * 1000;
+  
+  for (const [apiKey, requests] of rateLimitMap.entries()) {
+    const validRequests = requests.filter(timestamp => timestamp > oneMinuteAgo);
+    if (validRequests.length === 0) {
+      rateLimitMap.delete(apiKey);
+    } else {
+      rateLimitMap.set(apiKey, validRequests);
+    }
+  }
+}
+
+function isRateLimited(apiKey) {
+  if (!apiKey) return false;
+  
+  cleanupExpiredRateLimits();
+  
+  const now = Date.now();
+  const oneMinuteAgo = now - 60 * 1000;
+  const requests = rateLimitMap.get(apiKey) || [];
+  const recentRequests = requests.filter(timestamp => timestamp > oneMinuteAgo);
+  
+  return recentRequests.length >= RATE_LIMIT_PER_MINUTE;
+}
+
+function recordRequest(apiKey) {
+  if (!apiKey) return;
+  
+  const now = Date.now();
+  const requests = rateLimitMap.get(apiKey) || [];
+  requests.push(now);
+  rateLimitMap.set(apiKey, requests);
+}
+
 function getNextApiKey() {
   if (!API_KEYS.length) return undefined;
-  const key = API_KEYS[apiKeyIndex];
-  apiKeyIndex = (apiKeyIndex + 1) % API_KEYS.length;
-  return key;
+  
+  // Try to find an API key that is not rate limited
+  let attempts = 0;
+  while (attempts < API_KEYS.length) {
+    const key = API_KEYS[apiKeyIndex];
+    apiKeyIndex = (apiKeyIndex + 1) % API_KEYS.length;
+    
+    if (!isRateLimited(key)) {
+      return key;
+    }
+    
+    attempts++;
+  }
+  
+  // If all keys are rate limited, return the next one anyway
+  // (it will cause a 429 error to be thrown later)
+  return API_KEYS[apiKeyIndex];
 }
 
 export default {
@@ -36,6 +91,17 @@ export default {
       // if (!apiKey) {
       let apiKey = getNextApiKey();
       // }
+      
+      // Check rate limit
+      if (apiKey && isRateLimited(apiKey)) {
+        throw new HttpError("Rate limit exceeded. Please try again later.", 429);
+      }
+      
+      // Record the request
+      if (apiKey) {
+        recordRequest(apiKey);
+      }
+      
       const assert = (success) => {
         if (!success) {
           throw new HttpError("The specified HTTP method is not allowed for the requested resource", 400);
